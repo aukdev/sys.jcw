@@ -1,0 +1,60 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ServiceType {
+  id        Int       @id @default(autoincrement())
+  Type      String    @db.VarChar(50)
+  Services  Service[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Service {
+  id            Int         @id @default(autoincrement())
+  Title         String      @db.VarChar(200)
+  Time          Int
+  Price         Int
+  ServiceType   ServiceType @relation(fields: [ServiceTypeId], references: [id])
+  ServiceTypeId Int
+  Booking       Booking[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Booking {
+  id        Int      @id @default(autoincrement())
+  Date      DateTime
+  StartTime String   @db.VarChar(10)
+  EndTime   String   @db.VarChar(10)
+  Address   String   @db.VarChar(255)
+  Contact   String   @db.VarChar(20)
+  Service   Service  @relation(fields: [ServiceId], references: [id])
+  ServiceId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Client {
+  id        Int      @id @default(autoincrement())
+  Name      String   @db.VarChar(150)
+  Username  String   @db.VarChar(50)
+  Password  String   @db.VarChar(255)
+  Role      String   @db.VarChar(20)
+  Phone     String   @db.VarChar(20)
+  Email     String?  @db.VarChar(150)
+  Address   String?  @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
