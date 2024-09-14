@@ -1,18 +1,18 @@
 import { Router } from "express";
+import upload from "../../middleware/file-upload.mjs";
 import { HTTPSTATUS, HTTPSTATUS_MSG } from "../../const/http-server-config.mjs";
-import {
-  createType,
-  deleteType,
-  getAll,
-  getTypeById,
-  updateType,
-} from "../../controller/features/service.mjs";
 import { clientResponse, RESPONSE } from "../../dto/response.mjs";
+import {
+  create,
+  deleteData,
+  getAll,
+  update,
+} from "../../controller/features/product.mjs";
 
-const serviceTypeRouter = Router();
+const productRoute = Router();
 
 // get all
-serviceTypeRouter.get("/", async (_, w) => {
+productRoute.get("/", async (_, w) => {
   const data = await getAll();
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
@@ -30,28 +30,9 @@ serviceTypeRouter.get("/", async (_, w) => {
   );
 });
 
-// get all
-serviceTypeRouter.get("/:id", async (c, w) => {
-  const data = await getTypeById(c.params.id);
-  if (data === "error") {
-    w.status(HTTPSTATUS.SERVER_ERROR).json(
-      clientResponse(
-        RESPONSE.ERROR,
-        HTTPSTATUS.SERVER_ERROR,
-        undefined,
-        HTTPSTATUS_MSG.SERVER_ERROR
-      )
-    );
-    return;
-  }
-  w.status(HTTPSTATUS.OK).json(
-    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
-  );
-});
-
-// create type
-serviceTypeRouter.post("/", async (c, w) => {
-  const data = await createType(c.body);
+// create
+productRoute.post("/", async (c, w) => {
+  const data = await create(c.body);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -68,9 +49,9 @@ serviceTypeRouter.post("/", async (c, w) => {
   );
 });
 
-// update type
-serviceTypeRouter.put("/:id", async (c, w) => {
-  const data = await updateType(c.params.id, c.body);
+// update
+productRoute.put("/:id", async (c, w) => {
+  const data = await update(c.params.id, c.body);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -87,9 +68,32 @@ serviceTypeRouter.put("/:id", async (c, w) => {
   );
 });
 
-// delete type
-serviceTypeRouter.delete("/:id", async (c, w) => {
-  const data = await deleteType(c.params.id);
+// product image
+productRoute.post("/product-image", (c, w) => {
+  upload.single("product-image")(c, w, (err) => {
+    if (err)
+      w.status(HTTPSTATUS_MSG.SERVER_ERROR).json(
+        clientResponse(
+          RESPONSE.ERROR,
+          HTTPSTATUS.SERVER_ERROR,
+          undefined,
+          HTTPSTATUS_MSG.SERVER_ERROR
+        )
+      );
+    w.status(HTTPSTATUS.CREATED).json(
+      clientResponse(
+        RESPONSE.SUCCESS,
+        HTTPSTATUS.CREATED,
+        { file: `/data/${c.file.filename}` },
+        undefined
+      )
+    );
+  });
+});
+
+// delete
+productRoute.delete("/:id", async (c, w) => {
+  const data = await deleteData(c.params.id);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -106,4 +110,4 @@ serviceTypeRouter.delete("/:id", async (c, w) => {
   );
 });
 
-export default serviceTypeRouter;
+export default productRoute;

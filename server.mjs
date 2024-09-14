@@ -16,7 +16,8 @@ export const __filename = import.meta.filename;
 
 const httpServer = server();
 
-httpServer.use(cors());
+httpServer.use(cors({}));
+httpServer.use(server.json());
 httpServer.use("/api/v1/", router);
 httpServer.use("/data/", server.static(join(__dirname, "src", "public")));
 httpServer.use("/*", (_, w) =>

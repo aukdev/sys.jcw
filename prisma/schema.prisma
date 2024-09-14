@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -17,44 +17,227 @@ model ServiceType {
   id        Int       @id @default(autoincrement())
   Type      String    @db.VarChar(50)
   Services  Service[]
+  deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
 
 model Service {
-  id            Int         @id @default(autoincrement())
-  Title         String      @db.VarChar(200)
-  Time          Int
+  id            Int            @id @default(autoincrement())
+  Title         String         @db.VarChar(200)
+  Time          Int?
   Price         Int
-  ServiceType   ServiceType @relation(fields: [ServiceTypeId], references: [id])
+  ServiceType   ServiceType    @relation(fields: [ServiceTypeId], references: [id])
   ServiceTypeId Int
   Booking       Booking[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  MultiBooking  MultiBooking[]
+  deletedAt     DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 }
 
 model Booking {
+  id             Int           @id @default(autoincrement())
+  Date           DateTime
+  ExpireTime     DateTime?
+  Client         Client        @relation(fields: [ClientId], references: [id])
+  ClientId       Int
+  StartTime      String?       @db.VarChar(10)
+  EndTime        String?       @db.VarChar(10)
+  Address        String        @db.VarChar(255)
+  Contact        String        @db.VarChar(20)
+  BookingPrice   Decimal
+  NumberOfCars   Int?
+  AvailableTimes String?       @db.VarChar(250)
+  ServiceType    String
+  ServiceDetails String
+  Service        Service       @relation(fields: [ServiceId], references: [id])
+  ServiceId      Int
+  Invoice        Invoice?
+  BookingStatus  String        @default("pending") @db.VarChar(20)
+  BookingType    String        @default("single") @db.VarChar(20)
+  MultiBooking   MultiBooking? @relation(fields: [MultiBookingId], references: [id])
+  MultiBookingId Int?
+  Team           Team?         @relation(fields: [TeamId], references: [id])
+  TeamId         Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model MultiBooking {
+  id             Int       @id @default(autoincrement())
+  Client         Client    @relation(fields: [ClientId], references: [id])
+  ClientId       Int
+  StartTime      String?   @db.VarChar(10)
+  EndTime        String?   @db.VarChar(10)
+  Address        String    @db.VarChar(255)
+  Contact        String    @db.VarChar(20)
+  BookingPrice   Decimal
+  NumberOfCars   Int?
+  AvailableTimes String?   @db.VarChar(250)
+  ServiceType    String
+  ServiceDetails String
+  BookingType    String    @db.VarChar(12)
+  Service        Service   @relation(fields: [ServiceId], references: [id])
+  ServiceId      Int
+  Status         String?   @db.VarChar(10)
+  Booking        Booking[]
+  Invoices       Invoice[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Invoice {
+  id                Int           @id @default(autoincrement())
+  invoiceId         Int?          @unique
+  Client            Client?       @relation(fields: [ClientId], references: [id])
+  ClientId          Int?
+  Booking           Booking?      @relation(fields: [BookId], references: [id])
+  BookId            Int?          @unique
+  MultiBooking      MultiBooking? @relation(fields: [MultiBookingId], references: [id])
+  MultiBookingId    Int?
+  InvoiceType       String?
+  InvoiceDetails    String?
+  StartTime         String?       @db.VarChar(10)
+  EndTime           String?       @db.VarChar(10)
+  NumberOfCars      Int?
+  VehicalNoPlates   String?       @db.VarChar(250)
+  ServicePrice      Decimal?
+  InvoiceAmount     Decimal?
+  Discount          Int?
+  PaymentMethod     String?       @db.VarChar(50)
+  PaymentSlip       String?
+  PaymentStatus     String        @default("pendding") @db.VarChar(10)
+  Remarks           String?       @db.VarChar(250)
+  CustomerSignature String?
+  IssureImage1      String?
+  IssureImage2      String?
+  IssureImage3      String?
+  IssureImage4      String?
+  IssureImage5      String?
+  IssureImage6      String?
+  InvoicePDF        String?
+  StartingPoint     Boolean       @default(false)
+  Date              DateTime      @default(now())
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+model MainPDF {
   id        Int      @id @default(autoincrement())
-  Date      DateTime
-  StartTime String   @db.VarChar(10)
-  EndTime   String   @db.VarChar(10)
-  Address   String   @db.VarChar(255)
-  Contact   String   @db.VarChar(20)
-  Service   Service  @relation(fields: [ServiceId], references: [id])
-  ServiceId Int
+  File      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
-model Client {
+model Product {
   id        Int      @id @default(autoincrement())
-  Name      String   @db.VarChar(150)
-  Username  String   @db.VarChar(50)
-  Password  String   @db.VarChar(255)
-  Role      String   @db.VarChar(20)
-  Phone     String   @db.VarChar(20)
-  Email     String?  @db.VarChar(150)
-  Address   String?  @db.VarChar(255)
+  image     String
+  title     String
+  price     Decimal
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  image     String
+  title     String
+  price     Decimal
+  address   String
+  quantity  Int
+  client    Client      @relation(fields: [clientId], references: [id])
+  clientId  Int
+  status    OrderStatus @default(pendding)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model Advance {
+  id        Int           @id @default(autoincrement())
+  amount    Decimal
+  type      String
+  months    Int
+  client    Client        @relation(fields: [clientId], references: [id])
+  clientId  Int
+  status    AdvanceStatus @default(pendding)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Complaint {
+  id        Int           @id @default(autoincrement())
+  message   String        @db.VarChar(600)
+  image     String
+  client    Client        @relation(fields: [clientId], references: [id])
+  clientId  Int
+  status    AdvanceStatus @default(pendding)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model Ads {
+  id        Int      @id @default(autoincrement())
+  image     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id        Int       @id @default(autoincrement())
+  TeamName  String    @db.VarChar(100)
+  Members   Client[]
+  Booking   Booking[]
+  Leader    Int?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Client {
+  id           Int            @id @default(autoincrement())
+  Name         String         @db.VarChar(150)
+  Username     String         @db.VarChar(50)
+  Password     String         @db.VarChar(255)
+  Position     UserPosition   @default(Client)
+  Role         UserRole       @default(User)
+  Phone        String         @db.VarChar(20)
+  Email        String?        @db.VarChar(150)
+  Address      String?        @db.VarChar(255)
+  Team         Team[]
+  Booking      Booking[]
+  MultiBooking MultiBooking[]
+  Invoices     Invoice[]
+  Order        Order[]
+  Advance      Advance[]
+  Complaints   Complaint[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+enum UserRole {
+  Admin
+  User
+  Team
+}
+
+enum UserPosition {
+  Client
+  Team_Member
+  Team_Leader
+  Admin
+}
+
+enum OrderStatus {
+  pendding
+  cancel
+  accept
+  completed
+}
+
+enum AdvanceStatus {
+  pendding
+  rejected
+  accept
+  completed
 }

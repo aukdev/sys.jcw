@@ -2,165 +2,31 @@ import { Router } from "express";
 import { HTTPSTATUS, HTTPSTATUS_MSG } from "../../const/http-server-config.mjs";
 import { clientResponse, RESPONSE } from "../../dto/response.mjs";
 import { __dirname } from "../../../server.mjs";
-import { join } from "node:path";
-import { readFileSync, writeFileSync } from "node:fs";
-import { PDFDocument, rgb } from "pdf-lib";
 import upload from "../../middleware/file-upload.mjs";
+import {
+  getAllMonthly,
+  getAllByDate,
+  getById,
+  checkInvoiceNumber,
+  create,
+  mainPDFCreate,
+  update,
+  mainPDFUpdate,
+  invoiceGen,
+  startingInvoiceCreate,
+  getByMultiBookingId,
+  completeJob,
+} from "../../controller/features/invoice.mjs";
 
 const invoiceRouter = Router();
 
-invoiceRouter.get("/", async (_, w) => {
-  try {
-    // read file
-    const pdfBytes = readFileSync(join(__dirname, "src", "public", "pdf2.pdf"));
-    // pdf doc load
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    // get pdf pages
-    const pages = pdfDoc.getPages();
-    const firstPage = pages[0];
-    let startYoffSet = 182;
+//get all monthly invoice
+invoiceRouter.get("/get-all-monthly", async (c, w) => {
+  const page = c.query.page;
+  const size = c.query.size;
+  const data = await getAllMonthly(page, size);
 
-    const input1 = [
-      "Abdulla Al Hakim",
-      "2222333",
-      "25/07/2024",
-      "2323",
-      "23232",
-      "Invoice Type",
-    ];
-
-    const input2 = [
-      "11:00AM",
-      "02:00PM",
-      "2",
-      "233223",
-      "Bank Transfer",
-      Number(12000).toLocaleString("en-US", {
-        style: "currency",
-        currency: "QAR",
-      }),
-      "Invoice Details",
-    ];
-
-    input1.forEach((d) => {
-      // Add the text to the page
-      firstPage.drawText(d, {
-        x: 175, // X-coordinate
-        y: firstPage.getHeight() - startYoffSet, // Y-coordinate
-        size: 12, // Font size
-        color: rgb(0, 0, 0), // Text color
-      });
-      startYoffSet += 15;
-    });
-
-    // second input
-    startYoffSet += 22;
-    input2.forEach((d, i) => {
-      firstPage.drawText(d, {
-        x: 175, // X-coordinate
-        y: firstPage.getHeight() - startYoffSet, // Y-coordinate
-        size: 11, // Font size
-        color: rgb(0, 0, 0), // Text color
-      });
-      startYoffSet += 15;
-      if (i < 3) startYoffSet -= i;
-      else startYoffSet -= 1;
-    });
-
-    const newPage = pdfDoc.addPage();
-    // console.log(newPage.getHeight());
-
-    const imageBytes = readFileSync(
-      join(__dirname, "src", "public", "1722008205458_signature.png")
-    );
-    const pngImage = await pdfDoc.embedPng(imageBytes);
-
-    // Get the image dimensions
-    const pngDims = pngImage.scale(0.5); // Adjust the scale as needed
-
-    // Add the image to the page
-    firstPage.drawImage(pngImage, {
-      x: 350, // X-coordinate
-      y: 230, // Y-coordinate
-      width: pngDims.width,
-      height: pngDims.height,
-    });
-
-    // new page images
-    let newPageHeight = newPage.getHeight();
-    console.log(newPage.getWidth());
-    const issureImageBytes = readFileSync(
-      join(__dirname, "src", "public", "1722008250366_vehical-issure.jpeg")
-    );
-    const jpgImage1 = await pdfDoc.embedJpg(issureImageBytes);
-    newPage.drawImage(jpgImage1, {
-      x: 50,
-      y: newPageHeight - 200,
-      width: 208,
-      height: 156,
-    });
-
-    // image 2
-    newPage.drawImage(jpgImage1, {
-      x: 270,
-      y: newPageHeight - 200,
-      width: 208,
-      height: 156,
-    });
-
-    // image 3
-    newPage.drawImage(jpgImage1, {
-      x: 50,
-      y: newPageHeight - 370,
-      width: 208,
-      height: 156,
-    });
-
-    // image 4
-    newPage.drawImage(jpgImage1, {
-      x: 270,
-      y: newPageHeight - 370,
-      width: 208,
-      height: 156,
-    });
-
-    // image 5
-    newPage.drawImage(jpgImage1, {
-      x: 50,
-      y: newPageHeight - 540,
-      width: 208,
-      height: 156,
-    });
-
-    // image 6
-    newPage.drawImage(jpgImage1, {
-      x: 270,
-      y: newPageHeight - 540,
-      width: 208,
-      height: 156,
-    });
-
-    // Serialize the PDFDocument to bytes
-    const outPdfBytes = await pdfDoc.save();
-
-    const filename = Date.now();
-    // console.log(filename);
-    // Write the PDF to a file
-    writeFileSync(
-      join(__dirname, "src", "public", `${filename}_invoice.pdf`),
-      outPdfBytes
-    );
-    w.status(HTTPSTATUS.CREATED).json(
-      clientResponse(
-        RESPONSE.SUCCESS,
-        HTTPSTATUS.CREATED,
-        { file: `/data/${filename}_invoice.pdf` },
-        undefined
-      )
-    );
-    // console.log(join(__dirname, "src", "public", "pdf2.pdf"));
-  } catch (error) {
-    console.log(error);
+  if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
         RESPONSE.ERROR,
@@ -169,7 +35,245 @@ invoiceRouter.get("/", async (_, w) => {
         HTTPSTATUS_MSG.SERVER_ERROR
       )
     );
+    return;
   }
+
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+//get all daylly invoice
+invoiceRouter.get("/get-by-date", async (c, w) => {
+  const date = c.query.date;
+  const page = c.query.page;
+  const size = c.query.size;
+
+  const data = await getAllByDate(date, page, size);
+
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// get invoice by id
+invoiceRouter.get("/:id", async (c, w) => {
+  const data = await getById(c.params.id);
+
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// get by multi booking id
+invoiceRouter.get("/get-by-multibooking/:id", async (c, w) => {
+  const data = await getByMultiBookingId(c.params.id);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// job complete
+invoiceRouter.get("/job-complete/:bookId", async (c, w) => {
+  const data = await completeJob(c.params.bookId);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// create new invoice
+invoiceRouter.post("/", async (c, w) => {
+  const data = await create(c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.CREATED).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.CREATED, data, undefined)
+  );
+});
+
+// create main pdf
+invoiceRouter.post("/main-pdf", async (c, w) => {
+  const data = await mainPDFCreate(c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.CREATED).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.CREATED, data, undefined)
+  );
+});
+
+// starting invoice created
+invoiceRouter.post("/starting-inovice", async (c, w) => {
+  const data = await startingInvoiceCreate(c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.CREATED).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.CREATED, data, undefined)
+  );
+});
+
+// update main-pdf
+invoiceRouter.put("/main-pdf", async (c, w) => {
+  const data = await mainPDFUpdate(c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+// update invoice
+invoiceRouter.put("/:id", async (c, w) => {
+  const data = await update(c.params.id, c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// check invoice number
+invoiceRouter.post("/check-invoice-number", async (c, w) => {
+  const data = await checkInvoiceNumber(c.body.invoiceId);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  } else if (data === "data") {
+    w.status(HTTPSTATUS.BAD_REQUEST).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.BAD_REQUEST,
+        undefined,
+        "invoice id is already exist."
+      )
+    );
+    return;
+  } else if (data === "ok") {
+    w.status(HTTPSTATUS.OK).json(
+      clientResponse(
+        RESPONSE.SUCCESS,
+        HTTPSTATUS.OK,
+        `you can use ${c.body.invoiceId} as invoice id`,
+        undefined
+      )
+    );
+    return;
+  }
+});
+
+// genarate invoice pdf
+invoiceRouter.post("/invoice-pdf", async (c, w) => {
+  const data = await invoiceGen(c.body.id);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
 });
 
 // client signature
@@ -198,6 +302,29 @@ invoiceRouter.post("/signature", (c, w) => {
 // payment slip
 invoiceRouter.post("/payment-slip", (c, w) => {
   upload.single("payment-slip")(c, w, (err) => {
+    if (err)
+      w.status(HTTPSTATUS.SERVER_ERROR).json(
+        clientResponse(
+          RESPONSE.ERROR,
+          HTTPSTATUS.SERVER_ERROR,
+          undefined,
+          HTTPSTATUS_MSG.SERVER_ERROR
+        )
+      );
+    w.status(HTTPSTATUS.CREATED).json(
+      clientResponse(
+        RESPONSE.SUCCESS,
+        HTTPSTATUS.CREATED,
+        { file: `/data/${c.file.filename}` },
+        undefined
+      )
+    );
+  });
+});
+
+// payment slip
+invoiceRouter.post("/invoice-pdf-file", (c, w) => {
+  upload.single("invoice-pdf-file")(c, w, (err) => {
     if (err)
       w.status(HTTPSTATUS.SERVER_ERROR).json(
         clientResponse(

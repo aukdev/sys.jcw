@@ -1,19 +1,21 @@
 import { Router } from "express";
 import { HTTPSTATUS, HTTPSTATUS_MSG } from "../../const/http-server-config.mjs";
-import {
-  createType,
-  deleteType,
-  getAll,
-  getTypeById,
-  updateType,
-} from "../../controller/features/service.mjs";
 import { clientResponse, RESPONSE } from "../../dto/response.mjs";
+import {
+  create,
+  deleteData,
+  getAll,
+  getById,
+  getForCustomer,
+  update,
+} from "../../controller/features/complaint.mjs";
+import upload from "../../middleware/file-upload.mjs";
 
-const serviceTypeRouter = Router();
+const complaintRoute = Router();
 
 // get all
-serviceTypeRouter.get("/", async (_, w) => {
-  const data = await getAll();
+complaintRoute.get("/all", async (c, w) => {
+  const data = await getAll(c.query.page, c.query.size);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -30,9 +32,27 @@ serviceTypeRouter.get("/", async (_, w) => {
   );
 });
 
-// get all
-serviceTypeRouter.get("/:id", async (c, w) => {
-  const data = await getTypeById(c.params.id);
+// get by id
+complaintRoute.get("/:id", async (c, w) => {
+  const data = await getById(c.params.id);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+// get for client
+complaintRoute.get("/customer/:clientId", async (c, w) => {
+  const data = await getForCustomer(c.params.clientId);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -49,9 +69,9 @@ serviceTypeRouter.get("/:id", async (c, w) => {
   );
 });
 
-// create type
-serviceTypeRouter.post("/", async (c, w) => {
-  const data = await createType(c.body);
+// create
+complaintRoute.post("/", async (c, w) => {
+  const data = await create(c.body);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -68,9 +88,9 @@ serviceTypeRouter.post("/", async (c, w) => {
   );
 });
 
-// update type
-serviceTypeRouter.put("/:id", async (c, w) => {
-  const data = await updateType(c.params.id, c.body);
+// update
+complaintRoute.put("/:id", async (c, w) => {
+  const data = await update(c.params.id, c.body);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -87,9 +107,32 @@ serviceTypeRouter.put("/:id", async (c, w) => {
   );
 });
 
-// delete type
-serviceTypeRouter.delete("/:id", async (c, w) => {
-  const data = await deleteType(c.params.id);
+// complaint image
+complaintRoute.post("/complaint-image", (c, w) => {
+  upload.single("complaint-image")(c, w, (err) => {
+    if (err)
+      w.status(HTTPSTATUS_MSG.SERVER_ERROR).json(
+        clientResponse(
+          RESPONSE.ERROR,
+          HTTPSTATUS.SERVER_ERROR,
+          undefined,
+          HTTPSTATUS_MSG.SERVER_ERROR
+        )
+      );
+    w.status(HTTPSTATUS.CREATED).json(
+      clientResponse(
+        RESPONSE.SUCCESS,
+        HTTPSTATUS.CREATED,
+        { file: `/data/${c.file.filename}` },
+        undefined
+      )
+    );
+  });
+});
+
+// delete
+complaintRoute.delete("/:id", async (c, w) => {
+  const data = await deleteData(c.params.id);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -106,4 +149,4 @@ serviceTypeRouter.delete("/:id", async (c, w) => {
   );
 });
 
-export default serviceTypeRouter;
+export default complaintRoute;

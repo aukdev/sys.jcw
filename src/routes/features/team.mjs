@@ -1,19 +1,21 @@
 import { Router } from "express";
 import { HTTPSTATUS, HTTPSTATUS_MSG } from "../../const/http-server-config.mjs";
-import {
-  createType,
-  deleteType,
-  getAll,
-  getTypeById,
-  updateType,
-} from "../../controller/features/service.mjs";
 import { clientResponse, RESPONSE } from "../../dto/response.mjs";
+import {
+  addMembers,
+  createTeam,
+  deleteMembers,
+  deleteTeam,
+  getAllTeams,
+  getTeam,
+  update,
+} from "../../controller/features/team.mjs";
 
-const serviceTypeRouter = Router();
+const teamRouter = Router();
 
 // get all
-serviceTypeRouter.get("/", async (_, w) => {
-  const data = await getAll();
+teamRouter.get("/get-all-team", async (_, w) => {
+  const data = await getAllTeams();
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -30,9 +32,9 @@ serviceTypeRouter.get("/", async (_, w) => {
   );
 });
 
-// get all
-serviceTypeRouter.get("/:id", async (c, w) => {
-  const data = await getTypeById(c.params.id);
+// get team
+teamRouter.get("/get-team/:id", async (c, w) => {
+  const data = await getTeam(c.params.id);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -49,9 +51,9 @@ serviceTypeRouter.get("/:id", async (c, w) => {
   );
 });
 
-// create type
-serviceTypeRouter.post("/", async (c, w) => {
-  const data = await createType(c.body);
+// create
+teamRouter.post("/", async (c, w) => {
+  const data = await createTeam(c.body);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -68,9 +70,9 @@ serviceTypeRouter.post("/", async (c, w) => {
   );
 });
 
-// update type
-serviceTypeRouter.put("/:id", async (c, w) => {
-  const data = await updateType(c.params.id, c.body);
+// add new members
+teamRouter.post("/add-new-members/:id", async (c, w) => {
+  const data = await addMembers(c.params.id, c.body.Members);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -87,9 +89,9 @@ serviceTypeRouter.put("/:id", async (c, w) => {
   );
 });
 
-// delete type
-serviceTypeRouter.delete("/:id", async (c, w) => {
-  const data = await deleteType(c.params.id);
+// add new members
+teamRouter.post("/delete-members/:id", async (c, w) => {
+  const data = await deleteMembers(c.params.id, c.body.Members);
   if (data === "error") {
     w.status(HTTPSTATUS.SERVER_ERROR).json(
       clientResponse(
@@ -106,4 +108,42 @@ serviceTypeRouter.delete("/:id", async (c, w) => {
   );
 });
 
-export default serviceTypeRouter;
+// update
+teamRouter.put("/:id", async (c, w) => {
+  const data = await update(c.params.id, c.body);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+// delete
+teamRouter.delete("/:id", async (c, w) => {
+  const data = await deleteTeam(c.params.id);
+  if (data === "error") {
+    w.status(HTTPSTATUS.SERVER_ERROR).json(
+      clientResponse(
+        RESPONSE.ERROR,
+        HTTPSTATUS.SERVER_ERROR,
+        undefined,
+        HTTPSTATUS_MSG.SERVER_ERROR
+      )
+    );
+    return;
+  }
+  w.status(HTTPSTATUS.OK).json(
+    clientResponse(RESPONSE.SUCCESS, HTTPSTATUS.OK, data, undefined)
+  );
+});
+
+export default teamRouter;
